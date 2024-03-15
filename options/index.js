@@ -28,6 +28,11 @@ var state = {
     {id: 'light', title: 'Light Icon'},
     {id: 'dark', title: 'Dark Icon'}
   ],
+  rectangle: [
+    {id: 'default', title: 'No Limit'},
+    {id: '1:1', title: '1:1' },
+    {id: '3:4', title: '3:4' },
+  ],
   delay: 500,
   quality: 100,
   dialog: true,
@@ -40,6 +45,7 @@ chrome.storage.sync.get((config) => {
   state.clipboard.forEach((item) => item.checked = item.id === config.clipboard)
   state.scaling.forEach((item) => item.checked = item.id === config.scaling)
   state.icon.forEach((item) => item.checked = item.id === config.icon)
+  state.rectangle.forEach((item) => item.checked = item.id === config.rectangle)
   state.delay = config.delay
   state.quality = config.quality
   state.dialog = config.dialog
@@ -222,6 +228,30 @@ m.mount(document.querySelector('main'), {
                       type: 'radio', name: 'scaling',
                       checked: item.checked && 'checked',
                       onchange: events.option('scaling', item)
+                    }),
+                    m('.mdc-radio__background',
+                      m('.mdc-radio__outer-circle'),
+                      m('.mdc-radio__inner-circle'),
+                    ),
+                  ),
+                  m('span', item.title)
+                )
+              )
+            )
+          )
+        ),
+
+        m('h3', 'Capture Size'),
+        m('.bs-callout.s-last',
+          state.rectangle.map((item) =>
+            m('.row',
+              m('.col-sm-12',
+                m('label.s-label', {onupdate: onupdate(item)},
+                  m('.mdc-radio',
+                    m('input.mdc-radio__native-control', {
+                      type: 'radio', name: 'rectangle',
+                      checked: item.checked && 'checked',
+                      onchange: events.option('rectangle', item)
                     }),
                     m('.mdc-radio__background',
                       m('.mdc-radio__outer-circle'),
