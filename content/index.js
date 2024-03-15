@@ -1,4 +1,5 @@
 var jcrop, selection;
+var userConfig = {};
 
 var overlay = ((active) => (state) => {
   active =
@@ -18,63 +19,59 @@ var image = (done) => {
 };
 
 var init = (done) => {
-  var userConfig = {};
-  chrome.storage.sync.get((config) => {
-    userConfig = config;
-  });
-
   $("#fake-image").Jcrop(
     {
       bgColor: "none",
       onSelect: (e) => {
-        switch (userConfig.rectangle) {
-          case "1:1":
-            if (e.w === e.h) {
-              selection = e;
-            } else {
-              var square = e;
-              if (e.w > e.h) {
-                square.w = square.h;
-                square.x2 = square.x + square.w;
-                square.y2 = square.y + square.w;
+        chrome.storage.sync.get((config) => {
+          switch (config.rectangle) {
+            case "1:1":
+              if (e.w === e.h) {
+                selection = e;
               } else {
-                square.h = square.w;                
-                square.x2 = square.x + square.h;
-                square.y2 = square.y + square.h;
+                var square = e;
+                if (e.w > e.h) {
+                  square.w = square.h;
+                  square.x2 = square.x + square.w;
+                  square.y2 = square.y + square.w;
+                } else {
+                  square.h = square.w;                
+                  square.x2 = square.x + square.h;
+                  square.y2 = square.y + square.h;
+                }
+                selection = square;
+                jcrop.setSelect([
+                  selection.x,
+                  selection.y,
+                  selection.x2,
+                  selection.y2,
+                ]);
               }
-              selection = square;
-              jcrop.setSelect([
-                selection.x,
-                selection.y,
-                selection.x2,
-                selection.y2,
-              ]);
-            }
-            break;
-          case "3:4":
-            if (e.w / e.h === .75) {
+              break;
+            case "3:4":
+              if (e.w / e.h === .75) {
+                selection = e;
+              } else {
+                var rect = e;
+                rect.h = Math.ceil(rect.h / 4) * 4;
+                rect.w = rect.h / 4 * 3;
+                rect.x2 = rect.x + rect.w;
+                rect.y2 = rect.y + rect.h;
+                selection = rect;
+                jcrop.setSelect([
+                  selection.x,
+                  selection.y,
+                  selection.x2,
+                  selection.y2,
+                ]);
+              }
+              break;
+            default:
               selection = e;
-            } else {
-              var rect = e;
-              rect.h = Math.ceil(rect.h / 4) * 4;
-              rect.w = rect.h / 4 * 3;
-              rect.x2 = rect.x + rect.w;
-              rect.y2 = rect.y + rect.h;
-              selection = rect;
-              jcrop.setSelect([
-                selection.x,
-                selection.y,
-                selection.x2,
-                selection.y2,
-              ]);
-            }
-            break;
-          default:
-            selection = e;
-            break;
-        }
-
-        capture();
+              break;
+          }
+          capture();
+        });
       },
       onChange: (e) => {
         selection = e;
@@ -91,11 +88,6 @@ var init = (done) => {
       $(".jcrop-hline, .jcrop-vline").css({
         backgroundImage: `url(${chrome.runtime.getURL("/vendor/Jcrop.gif")})`,
       });
-
-      if (selection) {
-        jcrop.setSelect([selection.x, selection.y, selection.x2, selection.y2]);
-      }
-
       done && done();
     }
   );
@@ -103,9 +95,7 @@ var init = (done) => {
 
 var capture = (force) => {
   chrome.storage.sync.get((config) => {
-    if (
-      selection &&
-      (config.method === "crop" || (config.method === "wait" && force))
+    if (selection && (config.method === "crop" || (config.method === "wait" && force))
     ) {
       jcrop.release();
       setTimeout(() => {
@@ -258,6 +248,21 @@ var capture = (force) => {
   });
 };
 
+var drawSelection = () => {
+  chrome.storage.sync.get((config) => {
+    var bounds = jcrop.getBounds();
+    if (config.selection && config.selection[0].value) {
+      var width = config.selection[1].value;
+      var height = config.selection[2].value;
+      var x = bounds[0] / 2 - width / 2;
+      var x2 = bounds[0] / 2 + width / 2;
+      var y = bounds[1] / 2 - height / 2;
+      var y2 = bounds[1] / 2 + height / 2;
+      jcrop.setSelect([x, y, x2, y2]);
+    }
+  });
+}
+
 var filename = (format) => {
   var pad = (n) => ((n = n + ""), n.length >= 2 ? n : `0${n}`);
   var ext = (format) =>
@@ -342,13 +347,19 @@ chrome.runtime.onMessage.addListener((req, sender, res) => {
     if (!jcrop) {
       image(() =>
         init(() => {
+          drawSelection();
           overlay();
           capture();
         })
       );
     } else {
+      if (selection) {
+        capture(true);
+      } else {
+        drawSelection();
+        capture();
+      }
       overlay();
-      capture(true);
     }
   }
   return true;

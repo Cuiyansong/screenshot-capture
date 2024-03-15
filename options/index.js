@@ -33,6 +33,11 @@ var state = {
     {id: '1:1', title: '1:1' },
     {id: '3:4', title: '3:4' },
   ],
+  selection: [
+    {id: 'enableCustomizeSelection', value: false, title: 'Enable Customize'},
+    {id: 'selectionWidth', value: 720, title: 'Default Width'},
+    {id: 'selectionHeight', value:720, title: 'Default Height'},
+  ],
   delay: 500,
   quality: 100,
   dialog: true,
@@ -49,6 +54,12 @@ chrome.storage.sync.get((config) => {
   state.delay = config.delay
   state.quality = config.quality
   state.dialog = config.dialog
+  state.selection.forEach((item) => {
+    var origin = (config.selection || []).filter(s => s.id === item.id)[0];
+    if (origin) {
+      item.value = origin.value;
+    }
+  })
   m.redraw()
 })
 
@@ -60,7 +71,30 @@ chrome.commands.getAll((commands) => {
 
 var events = {
   option: (name, item) => (e) => {
-    if (name === 'save') {
+    if (name === 'enableCustomizeSelection') {
+      item.value = !item.value;
+      var newSelection = state.selection;
+      newSelection[0].value = item.value;
+      console.log(`newSelection ---> `,item, newSelection);
+      chrome.storage.sync.set({
+        selection: newSelection
+      })
+    } else if (name === 'selectionWidth') {
+      var width = parseInt(e.currentTarget.value);
+      var newSelection = state.selection;
+      newSelection[1].value = width;
+      chrome.storage.sync.set({
+        selection: newSelection
+      })
+    } else if (name === 'selectionHeight') {
+      var height = parseInt(e.currentTarget.value);
+      var newSelection = state.selection;
+      newSelection[2].value = height;
+      chrome.storage.sync.set({
+        selection: newSelection
+      })
+    }
+    else if (name === 'save') {
       item.checked = !item.checked
       chrome.storage.sync.set({
         save: state.save
@@ -104,7 +138,7 @@ var oncreate = {
   },
   textfield: (vnode) => {
     mdc.textfield.MDCTextField.attachTo(vnode.dom)
-  }
+  },
 }
 
 var onupdate = (item) => (vnode) => {
@@ -175,7 +209,61 @@ m.mount(document.querySelector('main'), {
             )
           )
         ),
+
+        m('h3', 'Customize Selection'),
+        m('.bs-callout',
+          state.selection.map((item) => {
+              if (item.id === 'enableCustomizeSelection') {
+                return m('.row',
+                  m('.col-sm-12',
+                    m('label.s-label', {onupdate: onupdate(item.value)},
+                      m('.mdc-checkbox',
+                        m('input.mdc-checkbox__native-control', {
+                          type: 'checkbox', name: 'enableCustomizeSelection',
+                          checked: !!item.value,
+                          onchange: events.option('enableCustomizeSelection', item)
+                        }),
+                      ),
+                      m('span', item.title)
+                    ),
+                  ),
+                )    
+              }
+              if (item.id === 'selectionWidth') {
+                return m('.row',
+                  m('.col-sm-12', {},
+                    m('span.s-text', item.title),
+                    m('.mdc-text-field s-textfield', { oncreate: oncreate.textfield },
+                      m('input.mdc-text-field__input', {
+                        type: 'number',
+                        value: item.value,
+                        onchange: events.option('selectionWidth', item),
+                      }),
+                      m('.mdc-line-ripple')
+                    ),
+                  )
+                )    
+              }
+              if (item.id === 'selectionHeight') {
+                return m('.row',
+                  m('.col-sm-12', {},
+                    m('span.s-text', item.title),
+                    m('.mdc-text-field s-textfield', { oncreate: oncreate.textfield },
+                      m('input.mdc-text-field__input', {
+                        type: 'number',
+                        value: item.value,
+                        onchange: events.option('selectionHeight', item),
+                      }),
+                      m('.mdc-line-ripple')
+                    ),
+                  )
+                )    
+              }
+            }
+          )
+        ),
       ),
+
       m('.col-xxl-4.col-xl-4.col-lg-6.col-md-6.col-sm-12',
         m('h3', 'Image Format'),
         m('.bs-callout',
@@ -241,7 +329,7 @@ m.mount(document.querySelector('main'), {
           )
         ),
 
-        m('h3', 'Capture Size'),
+        m('h3', 'Capture Scale'),
         m('.bs-callout.s-last',
           state.rectangle.map((item) =>
             m('.row',
@@ -265,6 +353,7 @@ m.mount(document.querySelector('main'), {
           )
         ),
       ),
+
       m('.col-xxl-4.col-xl-4.col-lg-6.col-md-6.col-sm-12.s-col',
         m('h3', 'Save Format'),
         m('.bs-callout', {class: state.save.every(({checked}) => !checked) && 's-box-error'},
@@ -369,6 +458,6 @@ m.mount(document.querySelector('main'), {
           )
         ),
       ),
-    ),
+    )
   ]
 })
