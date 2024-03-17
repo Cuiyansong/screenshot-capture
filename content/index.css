@@ -13,6 +13,20 @@ img#fake-image {
 }
 
 .jcrop-holder {
+  background-color: grey;
   position: fixed !important; top: 0 !important; left: 0 !important;
+  opacity: .2;
   z-index: 2147483647 !important;
+}
+
+.jcrop-holder .jcrop-hline {
+  opacity: .8;
+  background-color: greenyellow;
+  height: 2px !important;
+}
+
+.jcrop-holder .jcrop-vline {
+  opacity: .8;
+  background-color: greenyellow;
+  width: 2px !important;
 }

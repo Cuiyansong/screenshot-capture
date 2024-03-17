@@ -21,7 +21,6 @@ var image = (done) => {
 var init = (done) => {
   $("#fake-image").Jcrop(
     {
-      bgColor: "none",
       onSelect: (e) => {
         chrome.storage.sync.get((config) => {
           switch (config.rectangle) {
